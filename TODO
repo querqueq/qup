@@ -1,0 +1,18 @@
+# TODO
+
+## Bugs
+
+* Improve setIndicies
+* Fix radioButtonGroups
+* Fix pattern match for guards
+
+## Features
+
+* Ranges
+* Conditional page transitions
+* Chronological page transitions
+* CLI version
+* Save result questionair
+* Guards w/ value comparison
+* Logical OR for guards 
+* Import stylesheet
