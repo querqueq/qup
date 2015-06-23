@@ -1,0 +1,28 @@
+Fragebogen Titel
+================
+
+Seite 1
+-------
+
+Eine Frage mit Single-Choice-Antworten?
+* A
+* B
+* C
+
+Eine Frage mit Multiple-Choice-Answer?
+# A
+# B
+# C
+
+Seite 2
+-------
+
+Eine Frage mit Text-Answer?
+>
+
+Seite 3
+-------
+
+TODO: Einfach nur Text (für Beschreibungen etc.)
+* A
+* B
