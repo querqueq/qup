@@ -1,6 +1,6 @@
 module Qup.Parse (quParser, example) where
 
--- Parses a string into a ADT Document 
+-- Parses a string into an ADT defined in Qup.Data
 
 import Control.Applicative
 import Control.Monad (void)
@@ -129,6 +129,7 @@ example =
     , "Eine Frage mit Multiple-Choice-Answer? @question2"
     , "# A"
     , "# B @answerB"
+    , "[answerB]"
     , "# C"
     , ""
     , "Seite 2"
@@ -140,6 +141,7 @@ example =
     , "Seite 3"
     , "-------"
     , ""
+    , "[answerB]"
     , "Ein Paragraph mit mehreren"
     , "Zeilen."
     , ""

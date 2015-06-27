@@ -15,6 +15,33 @@ import GHCJS.DOM.EventM
 import GHCJS.DOM.HTMLInputElement
 import Control.Monad.IO.Class
 
+radioButtons :: MonadWidget t m => [(String,String)] -> m (Dynamic t String)
+radioButtons vals = do
+    rec eClicks <- mapM (\(v,l) -> radioButton (tag (constant False) $ ffilter (/=v) $ updated dValue) v l) vals
+        dValue <- holdDyn "" $ leftmost eClicks
+    return dValue
+    where radioButton setChecked val label = el "div" $ el "label" $ do
+            let attrs = constDyn $ "type" =: "radio"
+            e <- liftM castToHTMLInputElement $ buildEmptyElement "input" attrs
+            performEvent_ $ fmap (\v -> liftIO $ htmlInputElementSetChecked e $! v) $ setChecked
+            text label
+            eClick <- wrapDomEvent e elementOnclick $ liftIO $ htmlInputElementGetChecked e
+            return $ tag (constant val) eClick 
+    
+range :: MonadWidget t m => String -> String -> [String] -> m (Dynamic t String)
+range start end vals = do
+    text start
+    rec eClicks <- mapM (\v -> radioButton (tag (constant False) $ ffilter (/=v) $ updated dValue) v) vals
+        dValue <- holdDyn "" $ leftmost eClicks
+    text end
+    return dValue
+    where radioButton setChecked val = do
+            let attrs = constDyn $ "type" =: "radio"
+            e <- liftM castToHTMLInputElement $ buildEmptyElement "input" attrs
+            performEvent_ $ fmap (\v -> liftIO $ htmlInputElementSetChecked e $! v) $ setChecked
+            eClick <- wrapDomEvent e elementOnclick $ liftIO $ htmlInputElementGetChecked e
+            return $ tag (constant val) eClick 
+
 
 data RadioButtonConfig t =
      RadioButtonConfig { _radioButtonConfig_setValue :: Event t Bool
@@ -23,6 +50,7 @@ data RadioButtonConfig t =
 
 data RadioButton t =
      RadioButton { _radioButton_value :: Dynamic t Bool
+                 , _radioButton_true  :: Event t Bool
                  }
 
 makeLenses ''RadioButtonConfig
@@ -36,18 +64,25 @@ instance Reflex t => Default (RadioButtonConfig t) where
     def = RadioButtonConfig { _radioButtonConfig_setValue = never
                             , _radioButtonConfig_attributes = constDyn Map.empty
                             }
+man = mainWidget $ do
+    rec (RadioButton r1 t1) <- radioButton False $ def & radioButtonConfig_setValue .~ t2
+        display r1
+        (RadioButton r2 t2) <- radioButton True $ def {-& radioButtonConfig_setValue .~ t1-}
+        display r2
+    return ()
 
 radioButton :: MonadWidget t m => Bool -> RadioButtonConfig t -> m (RadioButton t)
 radioButton checked config = do
-    attrs <- mapDyn (\r -> Map.insert "name" "x" -- FIXME for testing, remove when render impl complete
-                           $ Map.insert "type" "radio" 
+    attrs <- mapDyn (\r -> Map.insert "type" "radio" 
                            $ (if checked then Map.insert "checked" "checked" else Map.delete "checked") r)
                     $ config^.radioButtonConfig_attributes
     e <- liftM castToHTMLInputElement $ buildEmptyElement "input" attrs
     eClick <- wrapDomEvent e elementOnclick $ liftIO $ htmlInputElementGetChecked e
-    performEvent_ $ fmap (\v -> liftIO $ htmlInputElementSetChecked e $! v) $ _radioButtonConfig_setValue config
+--    performEvent_ $ fmap (\v -> liftIO $ htmlInputElementSetChecked e $! v) $ _radioButtonConfig_setValue config
     dValue <- holdDyn checked $ leftmost [eClick, _radioButtonConfig_setValue config]
-    return $ RadioButton dValue
+    trueEvent <- return $ ffilter id $ updated $ dValue
+    return $ RadioButton dValue trueEvent
+
 
 guardWidget visible content = do
     let getAttrs True = "style" =: "display:inherit"
@@ -122,8 +157,10 @@ page (PageConfig v pe ne) becomeVisible c = el "div" $ do
 
 multiAnswers :: MonadWidget t m => String -> m (Dynamic t Bool)
 multiAnswers t = do
-    box <- checkbox False def-- checkboxWithLabel t
-    text $ " " ++ t
+    box <- el "label" $ do 
+        c <- checkbox False def
+        text $ " " ++ t
+        return c
     return $ _checkbox_value box
 
 limitedTextArea :: MonadWidget t m => Int -> m (TextArea t) 

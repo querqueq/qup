@@ -11,7 +11,7 @@ import Control.Applicative
 import Control.Lens
 
 import Qup.Parse
-import Qup.Wire
+import Qup.Render
 import Qup.Widgets
 import Qup.Data
 
@@ -19,26 +19,20 @@ makeLenses ''XhrRequestConfig
 makeLenses ''XhrResponse
 
 main :: IO ()
-main = do
-    mainWidgetWithCss $(embedFile "style.css") $ do
+main = mainWidgetWithCss $(embedFile "style.css") $ do
         box <- divClass "input"  $ textArea $ TextAreaConfig (unlines example) never $ constDyn Map.empty
         qu <- mapDyn (render.attachMeta.parse quParser "An error occured") $ value box
-        divClass "output" $ do 
-            renderChanged <- dyn qu
-            changes <- count renderChanged
-            divClass "stats" $ do
-                text "Changes: "
-                display changes
+        divClass "output" $ dyn qu >> return ()
 
 render (Left e) = el "p" $ do 
     el "b" $ text $ "Markup is erroneous:"
     el "p" $ text e
 render (Right doc@(Element Document _ _)) = do
     results <- wire doc
-    --divClass "values" $ mapM (\(k,v) -> el "div" $ text (k++": ") >> rdisplay v) $ Map.toList results
+    divClass "values" $ mapM (\(k,v) -> el "div" $ text (k++": ") >> rdisplay v) $ Map.toList results
     responses <- mapM (\(k,v) -> xhrAnswer k v) $ Map.toList results
     --divClass "response" $ mapM xhrDisplay responses
-    return () -- TODO handle results; send to web service
+    return ()
 render (Right _) = el "p" $ text $ "Data is malformed"
 
 xhrDisplay resp = do
@@ -53,5 +47,4 @@ xhrAnswer k v = do
     holdDyn (XhrResponse Nothing) resp
     where answerReq id answer = xhrRequest "POST" ("http://localhost/~j/post/answer/" ++ id)  -- TODO move url from user
                               $ def & xhrRequestConfig_sendData .~ (Just answer)
-
 
