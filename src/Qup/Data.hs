@@ -2,7 +2,7 @@
    
 module Qup.Data where
 
-import Control.Lens hiding (Indexable)
+import Control.Lens
 import Control.Applicative
 import Safe
 import Data.Maybe
@@ -10,7 +10,7 @@ import Data.List
 import qualified Data.Map as Map
 import Reflex
 import Reflex.Dom
-import Data.Tree
+import Data.List
 
 type Id = String
 
@@ -31,7 +31,8 @@ data ElementType = Document
                  | MultiAnswer
                  | FreeAnswer
                  | Guard Id
-                 deriving Show
+                 | Range
+                 deriving (Show,Eq)
 
 data Element = Element 
                  { _element_type        :: ElementType
@@ -50,7 +51,16 @@ makeLenses ''Element
 attachMeta (Left a) = Left (show a)
 attachMeta (Right doc) = checkIds $ setIndicies "" 1 doc
 
-    
+sameType (Element t1 _ _) (Element t2 _ _) = t1 == t2
+isRange as = length as > 2 
+             && (\x -> isSa x && hasT x) (head as) 
+             && and (map (\x -> isSa x && not (hasT x)) (init $ tail as))
+             && (\x -> isSa x && hasT x) (last as)
+            where isSa (Element SingleAnswer _ _) = True
+                  isSa _ = False
+                  hasT (Element _ _ [CPlain t]) = t /= ""
+                  hasT _ = False
+
 -- FIXME implement correct, skip nothings, take prev from parent node with meta
 setIndicies :: String -> Integer -> Element -> Element 
 setIndicies pre n (Element t m contents) = case m of
@@ -95,6 +105,9 @@ multiAnswer text = Element MultiAnswer meta [CPlain text]
 freeAnswer = Element FreeAnswer meta []
 
 -- Helper
+
+getTitle (Element _ _ [CPlain t]) = t
+getMeta (Element _ (Just m) _) = m
 
 ids :: Maybe Meta -> [Id]
 ids Nothing  = []

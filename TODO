@@ -3,12 +3,10 @@
 ## Bugs
 
 * Improve setIndicies
-* Fix radioButtonGroups
 * Fix pattern match for guards
 
 ## Features
 
-* Ranges
 * Conditional page transitions
 * Chronological page transitions
 * CLI version
@@ -16,3 +14,5 @@
 * Guards w/ value comparison
 * Logical OR for guards 
 * Import stylesheet
+* Read GUID from URL, send with each web service call
+* Special Char masking (@,#,*,etc.)

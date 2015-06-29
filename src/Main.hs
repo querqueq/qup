@@ -29,7 +29,7 @@ render (Left e) = el "p" $ do
     el "p" $ text e
 render (Right doc@(Element Document _ _)) = do
     results <- wire doc
-    divClass "values" $ mapM (\(k,v) -> el "div" $ text (k++": ") >> rdisplay v) $ Map.toList results
+    --divClass "values" $ mapM (\(k,v) -> el "div" $ text (k++": ") >> rdisplay v) $ Map.toList results
     responses <- mapM (\(k,v) -> xhrAnswer k v) $ Map.toList results
     --divClass "response" $ mapM xhrDisplay responses
     return ()

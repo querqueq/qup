@@ -9,16 +9,19 @@ import Reflex.Dom
 import Control.Applicative
 import Control.Monad hiding (guard)
 import Control.Lens
-import Safe
-import Data.Tree
+import Data.List
 import Data.Maybe
 import qualified Data.Map.Lazy as Map
+import Safe
 
 import Qup.Parse
 import Qup.Widgets hiding (page) -- TODO fix this hiding
 import Qup.Data
 
 import Debug.Trace
+
+--f :: MonadWidget t m => m ()
+--f = Map.lookup "a" ("a" =: constDyn True) >>= liftM (\x -> guardWidget x $ text "a")
 
 data Result t = RBool (Dynamic t Bool)
               | RString (Dynamic t String)
@@ -54,54 +57,32 @@ render rs (Element Page (Just m) ((CPlain t):cs)) = divClass "page" $ do -- TODO
     dss <- divClass "pageContent" $ mapM (render rs) cs
     return $ Map.unions dss
 render rs (Element MultiAnswer (Just m) [CPlain t]) = divClass "multiAnswer" $ do
-    r <- el "div" $ do 
-        r <- multiAnswers $ t
-        debug m
-        return r
+    r <- multiAnswers $ t
+    debug m
     return $ insertIds (Just m) (RBool r) Map.empty
 render rs (Element FreeAnswer (Just m) []) = divClass "freeAnswer" $ do
-    r <- el "div" $ textAnswer ""
+    r <- textAnswer ""
     debug m
     return $ insertIds (Just m) (RString r) Map.empty
-render rs (Element Question (Just m) [CPlain t, Element Answers _ as]) = do
-    el "p" $ do
+render rs (Element Question (Just m) [CPlain t, Element Answers _ as]) = divClass "question" $ do
+    divClass "question-text" $ do
         text $ t
         debug m
-    let (singleAnswers,otherAnswers) = splitAnswers as [] []
-    ds1 <- if length singleAnswers > 0
-        then do
-            d <- radioButtons $ transSas singleAnswers
-            return $ insertIds (Just m) (RString d) Map.empty
-        else return Map.empty
-    ds2 <- Map.unions <$> mapM (render rs) otherAnswers
-    return $ Map.unions [ds1,ds2]
-    where splitAnswers [] sas oas = (reverse sas,reverse oas) 
-          splitAnswers (e@(Element SingleAnswer _ _):as) sas oas = splitAnswers as (e:sas) oas
-          splitAnswers (a:as) sas oas = splitAnswers as sas $ a:oas
+    let groupedAnswers = groupBy sameType as
+    ds <- Map.unions <$> mapM renderAnswers groupedAnswers
+    return ds
+    where renderAnswers as@((Element SingleAnswer _ _):_)
+            | isRange as = divClass "range" $ do
+                d <- range (getTitle $ head as) (getTitle $ last as) $ map (\x -> unwrap $ getMeta x^.meta_index) as
+                return $ insertIds (Just m) (RString d) Map.empty
+            | otherwise  = divClass "radios" $ do
+                d <- radioButtons $ transSas as
+                return $ insertIds (Just m) (RString d) Map.empty
+          renderAnswers as = Map.unions <$> mapM (render rs) as
           transSas [] = []
           transSas (e@(Element SingleAnswer (Just m) [CPlain t]):sas) = (unwrap $ m^.meta_index,t):transSas sas
           unwrap Nothing = ""
           unwrap (Just x) = x
-    {-
-    let isPair (RPair _) = True
-        isPair _ = False
-        pshow (RPair _) = "pair"
-        pshow (RBool _) = "bool"
-        pshow (RUnit _) = "unit"
-        pshow (RString _) = "string"
-    rec sae <- return $ map (\(RPair (s,b)) -> attach (constant s) (updated b)) $ filter isPair ps
-        setV  <- return $ tag (constant False) $ leftmost $ sae  -- FIXME fix cycle
-        (ps,ds) <- (\(x,y) -> (x, Map.unions y)).unzip <$> mapM (renderAnswer never rs) as
-    sv <- holdDyn True setV
-    el "p" $ do
-        text "Reset: "
-        display sv
-    r <- holdDyn "" $ fst $ splitE $ leftmost $ sae 
-    --mapM (el "div" . rdisplay) singleAnswers
-    if length sae > 0
-        then return $ insertIds (Just m) (RString r) ds
-        else return ds
-    -}
 render rs (Element Paragraph _ [CPlain t]) = el "p" $ do
     mapM_ textBr $ lines t
     return Map.empty

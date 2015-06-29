@@ -175,5 +175,5 @@ limitedTextArea u = do
 textAnswer :: MonadWidget t m => String -> m (Dynamic t String)
 textAnswer t = do
     el "div" $ text t
-    box <- limitedTextArea 40
+    box <- limitedTextArea 140
     return $ value box
